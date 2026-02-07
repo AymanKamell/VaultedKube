@@ -23,7 +23,8 @@ import {
 import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// ✅ CHANGED: Use relative path — Nginx will proxy /api to backend
+const API_URL = '/api';
 
 function App() {
   const [tasks, setTasks] = useState([]);

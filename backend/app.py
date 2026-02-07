@@ -5,6 +5,7 @@ from flask_migrate import Migrate
 from flask_swagger_ui import get_swaggerui_blueprint
 import os
 from dotenv import load_dotenv
+from sqlalchemy import text  # ← ADD THIS IMPORT
 
 # Load environment variables
 load_dotenv()
@@ -122,12 +123,11 @@ def delete_task(task_id):
 @app.route('/health')
 def health_check():
     try:
-        # Check database connection
-        db.session.execute('SELECT 1')
+        # Check database connection — FIXED: wrap with text()
+        db.session.execute(text('SELECT 1'))
         return jsonify({
             'status': 'healthy',
-            'database': 'connected',
-            'timestamp': db.func.now()
+            'database': 'connected'
         }), 200
     except Exception as e:
         return jsonify({
@@ -138,4 +138,6 @@ def health_check():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Only enable debug if explicitly set to 'true'
+    debug_mode = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
+    app.run(host='0.0.0.0', port=5000, debug=debug_mode)
