@@ -46,17 +46,3 @@ variable "tags" {
   default     = {}
 }
 
-# Optional: SG rules from root (start empty, add later)
-variable "sg_rules" {
-  description = "Optional SG rules to attach without editing the module"
-  type = list(object({
-    sg_key      = string              # one of: alb, eks_nodes, db
-    type        = string              # ingress | egress
-    from_port   = number
-    to_port     = number
-    protocol    = string
-    cidr_blocks = list(string)
-    description = optional(string)
-  }))
-  default = []
-}

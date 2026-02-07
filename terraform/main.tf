@@ -14,6 +14,4 @@ module "networking" {
 
   tags = var.tags
 
-  # optional: add SG rules later without editing module code
-  sg_rules = var.sg_rules
 }

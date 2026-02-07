@@ -29,12 +29,12 @@ resource "aws_subnet" "public" {
   tags = merge(local.common_tags, {
     Name = "${var.project_name}-public-${count.index + 1}"
     Tier = "public"
-  },
-  var.eks_cluster_name != null ? {
-    "kubernetes.io/cluster/${var.eks_cluster_name}" = "shared"
-    "kubernetes.io/role/elb"                        = "1"
-  } : {}
-)
+    },
+    var.eks_cluster_name != null ? {
+      "kubernetes.io/cluster/${var.eks_cluster_name}" = "shared"
+      "kubernetes.io/role/elb"                        = "1"
+    } : {}
+  )
 }
 
 resource "aws_subnet" "private_eks" {
@@ -47,12 +47,12 @@ resource "aws_subnet" "private_eks" {
     Name = "${var.project_name}-private-eks-${count.index + 1}"
     Tier = "private"
     Role = "eks"
-  },
-  var.eks_cluster_name != null ? {
-    "kubernetes.io/cluster/${var.eks_cluster_name}" = "shared"
-    "kubernetes.io/role/internal-elb"               = "1"
-  } : {}
-)
+    },
+    var.eks_cluster_name != null ? {
+      "kubernetes.io/cluster/${var.eks_cluster_name}" = "shared"
+      "kubernetes.io/role/internal-elb"               = "1"
+    } : {}
+  )
 }
 
 resource "aws_subnet" "private_db" {
