@@ -1,17 +1,30 @@
 module "networking" {
   source = "./modules/networking"
 
-  project_name = var.project_name
-  vpc_cidr     = var.vpc_cidr
+  project_name     = var.project_name
+  vpc_cidr         = var.vpc_cidr
+  azs              = var.azs
 
-  # Exactly 2 AZs (high availability)
-  azs = var.azs
-
-  # 6 subnets (2 public, 2 private-eks, 2 private-db)
   public_subnet_cidrs      = var.public_subnet_cidrs
   private_eks_subnet_cidrs = var.private_eks_subnet_cidrs
   private_db_subnet_cidrs  = var.private_db_subnet_cidrs
 
-  tags = var.tags
-
+  eks_cluster_name = var.eks_cluster_name
+  tags             = var.tags
 }
+
+
+module "eks" {
+  source = "./modules/eks"
+
+  project_name = var.project_name
+  cluster_name = var.eks_cluster_name
+  region       = var.region
+
+  vpc_id               = module.networking.vpc_id
+  private_subnet_ids   = module.networking.private_eks_subnet_ids
+  public_subnet_ids    = module.networking.public_subnet_ids
+
+  tags = var.tags
+}
+
