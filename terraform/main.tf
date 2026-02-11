@@ -28,3 +28,18 @@ module "eks" {
   tags = var.tags
 }
 
+module "rds" {
+  source = "./modules/rds"
+
+  project_name = var.project_name
+  tags         = var.tags
+
+  vpc_id     = module.networking.vpc_id
+  subnet_ids  = module.networking.private_db_subnet_ids
+
+  eks_nodes_sg_id = module.eks.eks_nodes_sg_id
+
+  db_name     = "vaultedkubedb"
+  db_username = "vaultedkube"
+}
+

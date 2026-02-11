@@ -14,3 +14,7 @@ output "node_role_arn" {
   value = aws_iam_role.eks_nodes.arn
 }
 
+output "eks_nodes_sg_id" {
+  value = aws_security_group.eks_nodes.id
+}
+
