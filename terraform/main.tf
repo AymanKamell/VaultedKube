@@ -1,3 +1,8 @@
+locals {
+  # Set to true only if you have a registered domain and want to point it to Route 53
+  use_custom_domain = false 
+}
+
 module "networking" {
   source = "./modules/networking"
 
@@ -13,7 +18,6 @@ module "networking" {
   tags             = var.tags
 }
 
-
 module "eks" {
   source = "./modules/eks"
 
@@ -26,6 +30,69 @@ module "eks" {
   public_subnet_ids    = module.networking.public_subnet_ids
 
   tags = var.tags
+}
+
+# DNS and SSL Certificates
+module "dns" {
+  source = "./modules/dns"
+
+  project_name = var.project_name
+  domain_name  = "${var.project_name}-ayman.com"
+  create_dns   = local.use_custom_domain
+  tags         = var.tags
+
+  providers = {
+    aws.us_east_1 = aws.us_east_1
+  }
+}
+
+# Automate Kubernetes Manifests
+data "kubectl_path_documents" "k8s_manifests" {
+  pattern = "${path.module}/../kubernetes/*/*.yaml"
+}
+
+resource "kubectl_manifest" "k8s_apply" {
+  for_each  = data.kubectl_path_documents.k8s_manifests.manifests
+  yaml_body = each.value
+
+  depends_on = [module.eks, module.rds]
+}
+
+# Ingress Resource (moved from YAML)
+resource "kubernetes_ingress_v1" "frontend" {
+  metadata {
+    name      = "frontend-ingress"
+    namespace = "final-project"
+    annotations = {
+      "alb.ingress.kubernetes.io/scheme"       = "internet-facing"
+      "alb.ingress.kubernetes.io/target-type" = "ip"
+      "alb.ingress.kubernetes.io/listen-ports" = local.use_custom_domain ? "[{\"HTTP\": 80}, {\"HTTPS\": 443}]" : "[{\"HTTP\": 80}]"
+      "alb.ingress.kubernetes.io/certificate-arn" = local.use_custom_domain ? module.dns.alb_certificate_arn : null
+      "alb.ingress.kubernetes.io/ssl-policy"   = local.use_custom_domain ? "ELBSecurityPolicy-2016-08" : null
+    }
+  }
+
+  spec {
+    ingress_class_name = "alb"
+    rule {
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "frontend"
+              port {
+                number = 80
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [kubectl_manifest.k8s_apply]
 }
 
 module "rds" {
@@ -43,3 +110,30 @@ module "rds" {
   db_username = "vaultedkube"
 }
 
+module "cloudfront" {
+  source = "./modules/cloudfront"
+
+  project_name = var.project_name
+  # Use the Ingress resource output directly to ensure dependency and wait for DNS
+  # Using try() because hostname isn't available until the AWS LB Controller provisions the ALB
+  alb_dns_name = try(kubernetes_ingress_v1.frontend.status[0].load_balancer[0].ingress[0].hostname, "pending-dns")
+  
+  # HTTPS additions (conditional)
+  domain_name              = module.dns.domain_name
+  acm_certificate_arn      = module.dns.cloudfront_certificate_arn
+  
+  tags         = var.tags
+}
+
+output "manifest_count" {
+  value = length(data.kubectl_path_documents.k8s_manifests.manifests)
+}
+
+output "nameservers" {
+  value       = module.dns.nameservers
+  description = "The nameservers for your Route 53 Hosted Zone. Update your domain registrar with these."
+}
+
+output "cloudfront_url" {
+  value = module.cloudfront.cloudfront_domain_name
+}

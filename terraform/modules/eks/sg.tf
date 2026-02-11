@@ -39,6 +39,14 @@ resource "aws_security_group" "eks_nodes" {
     security_groups = [aws_security_group.eks_cluster.id]
   }
 
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # ALB needs to reach pod IPs
+    description = "Allow HTTP from anywhere (ALB is public but SG controls internal node access)"
+  }
+
   egress {
     from_port = 0
     to_port   = 0
