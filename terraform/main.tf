@@ -1,6 +1,8 @@
 locals {
   # Set to true only if you have a registered domain and want to point it to Route 53
-  use_custom_domain = false 
+  use_custom_domain = true 
+  # Set to true ONLY after you've updated your nameservers and the certificate is validated
+  ssl_ready         = false
 }
 
 module "networking" {
@@ -41,6 +43,10 @@ module "dns" {
   create_dns   = local.use_custom_domain
   tags         = var.tags
 
+  # Final link: Alias record needs CloudFront details
+  cloudfront_domain_name    = module.cloudfront.cloudfront_domain_name
+  cloudfront_hosted_zone_id = module.cloudfront.cloudfront_hosted_zone_id
+
   providers = {
     aws.us_east_1 = aws.us_east_1
   }
@@ -66,9 +72,9 @@ resource "kubernetes_ingress_v1" "frontend" {
     annotations = {
       "alb.ingress.kubernetes.io/scheme"       = "internet-facing"
       "alb.ingress.kubernetes.io/target-type" = "ip"
-      "alb.ingress.kubernetes.io/listen-ports" = local.use_custom_domain ? "[{\"HTTP\": 80}, {\"HTTPS\": 443}]" : "[{\"HTTP\": 80}]"
-      "alb.ingress.kubernetes.io/certificate-arn" = local.use_custom_domain ? module.dns.alb_certificate_arn : null
-      "alb.ingress.kubernetes.io/ssl-policy"   = local.use_custom_domain ? "ELBSecurityPolicy-2016-08" : null
+      "alb.ingress.kubernetes.io/listen-ports" = local.ssl_ready ? "[{\"HTTP\": 80}, {\"HTTPS\": 443}]" : "[{\"HTTP\": 80}]"
+      "alb.ingress.kubernetes.io/certificate-arn" = local.ssl_ready ? module.dns.alb_certificate_arn : null
+      "alb.ingress.kubernetes.io/ssl-policy"   = local.ssl_ready ? "ELBSecurityPolicy-2016-08" : null
     }
   }
 
@@ -119,8 +125,8 @@ module "cloudfront" {
   alb_dns_name = try(kubernetes_ingress_v1.frontend.status[0].load_balancer[0].ingress[0].hostname, "pending-dns")
   
   # HTTPS additions (conditional)
-  domain_name              = module.dns.domain_name
-  acm_certificate_arn      = module.dns.cloudfront_certificate_arn
+  domain_name              = local.ssl_ready ? "${var.project_name}-ayman.com" : null
+  acm_certificate_arn      = local.ssl_ready ? module.dns.cloudfront_certificate_arn : null
   
   tags         = var.tags
 }
