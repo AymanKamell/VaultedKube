@@ -25,6 +25,16 @@ resource "helm_release" "aws_load_balancer_controller" {
     value = aws_iam_role.load_balancer_controller.arn
   }
 
+  set {
+    name  = "region"
+    value = var.region
+  }
+
+  set {
+    name  = "vpcId"
+    value = var.vpc_id
+  }
+
   depends_on = [
     aws_iam_role_policy_attachment.load_balancer_controller_attach
   ]

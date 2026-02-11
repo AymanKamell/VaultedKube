@@ -23,15 +23,17 @@ spec:
           command:
             - sh
             - -c
-            - until nc -z postgres 5432; do echo waiting for db; sleep 5; done
+            - until nc -z vaultedkube-postgres.cghcymykc28f.us-east-1.rds.amazonaws.com 5432; do echo waiting for db; sleep 5; done
       containers:
         - name: backend
-          image: aymankamell/vaultedkube-backend
+          image: 296674251987.dkr.ecr.us-east-1.amazonaws.com/vaultedkube-backend:latest
           ports:
             - containerPort: 5000
           envFrom:
             - configMapRef:
                 name: backend-config
+            - secretRef:
+                name: postgres-secrets
           livenessProbe:
             httpGet:
               path: /health

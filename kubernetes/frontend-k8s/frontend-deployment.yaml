@@ -15,6 +15,6 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: aymankamell/vaultedkube-frontend
+          image: 296674251987.dkr.ecr.us-east-1.amazonaws.com/vaultedkube-frontend:latest
           ports:
             - containerPort: 80

@@ -4,6 +4,6 @@ metadata:
   name: backend-config
   namespace: final-project
 data:
-  DATABASE_URL: postgresql://bookstore:bookstore123@postgres:5432/bookstore
+
   REDIS_HOST: redis
   REDIS_PORT: "6379"

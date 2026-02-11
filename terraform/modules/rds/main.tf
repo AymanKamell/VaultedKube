@@ -16,7 +16,7 @@ resource "random_password" "db" {
 
 # Secrets Manager secret container
 resource "aws_secretsmanager_secret" "db" {
-  name                    = "${var.project_name}/rds/postgres"
+  name                    = "${var.project_name}/rds/postgres2"
   description             = "Postgres credentials for ${var.project_name}"
   recovery_window_in_days = var.secret_recovery_window_days
 
